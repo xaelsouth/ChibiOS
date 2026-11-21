@@ -456,6 +456,42 @@ static inline bool port_is_isr_context(void) {
 }
 
 /**
+ * @brief   Returns the current lock status (the CPSR value).
+ * @note    Enables CH_PORT_SUPPORTS_RECURSIVE_LOCKS (needed e.g. by the
+ *          lwIP bindings' sys_arch_protect()). Defined as macros so that
+ *          chport.h detects them with defined().
+ */
+static inline syssts_t __port_get_lock_status(void) {
+  syssts_t sts;
+
+#if defined(THUMB)
+  sts = __port_get_cpsr();
+#else
+  __asm volatile ("mrs     %[p0], CPSR" : [p0] "=r" (sts) :);
+#endif
+
+  return sts;
+}
+#define port_get_lock_status() __port_get_lock_status()
+
+/**
+ * @brief   Checks if the system is in a locked state.
+ * @details In this port "locked" means the IRQ-disable bit (I, 0x80) is
+ *          set in the saved CPSR.
+ *
+ * @param[in] sts       status word returned by @p port_get_lock_status()
+ *
+ * @return              The lock status.
+ * @retval false        not locked.
+ * @retval true         locked.
+ */
+static inline bool __port_is_locked(syssts_t sts) {
+
+  return (sts & (syssts_t)0x80U) != (syssts_t)0U;
+}
+#define port_is_locked(sts) __port_is_locked(sts)
+
+/**
  * @brief   Kernel-lock action.
  * @details In this port it disables the IRQ sources and keeps FIQ sources
  *          enabled.
