@@ -58,6 +58,18 @@ void __early_init(void) {
     dst[i] = src[i];
   }
 
+  /* Invalidate and disable the caches and the MMU: the bootstream may
+     have left the D-cache on, which would break DMA/LCDIF coherency
+     (no MMU is used, all SDRAM is identity-mapped). */
+  {
+    uint32_t c1;
+
+    __asm__ volatile ("mcr p15, 0, %0, c7, c7, 0" : : "r" (0) : "memory");
+    __asm__ volatile ("mrc p15, 0, %0, c1, c0, 0" : "=r" (c1));
+    c1 &= ~((1UL << 13) | (1UL << 12) | (1UL << 2) | (1UL << 0));
+    __asm__ volatile ("mcr p15, 0, %0, c1, c0, 0" : : "r" (c1) : "memory");
+  }
+
   /* Switch the CPU to low exception vectors (clear V bit, c1 bit 13). */
   {
     uint32_t c1;
