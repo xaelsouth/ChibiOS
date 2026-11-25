@@ -203,7 +203,12 @@ static const testcase_t rt_test_011_001 = {
  */
 
 static void rt_test_011_002_setup(void) {
-  chPoolObjectInit(&mp1, THD_WORKING_AREA_SIZE(THREADS_STACK_SIZE), NULL);
+  /* The pool holds thread working areas, so it must be initialized with
+     PORT_WORKING_AREA_ALIGN: chThdCreateFromMemoryPool()
+     asserts mp->align >= PORT_WORKING_AREA_ALIGN and the pool objects in
+     wa[] are already aligned to PORT_WORKING_AREA_ALIGN. */
+  chPoolObjectInitAligned(&mp1, THD_WORKING_AREA_SIZE(THREADS_STACK_SIZE),
+                          PORT_WORKING_AREA_ALIGN, NULL);
 }
 
 static void rt_test_011_002_execute(void) {
